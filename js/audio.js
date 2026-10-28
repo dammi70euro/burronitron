@@ -1,8 +1,9 @@
 'use strict';
-// Audio: effetti sintetizzati, musica procedurale "western-surf" e voci registrate.
+// Audio: effetti sintetizzati, musica di sfondo (mp3 in loop) e voci registrate.
 const Sound = (() => {
-  let ctx = null, master, comp, sfxBus, musicBus, voiceBus, delay, delayFb, noiseBuf;
+  let ctx = null, master, comp, sfxBus, musicBus, voiceBus, noiseBuf;
   let muted = false, musicOn = true;
+  const MUSIC_VOL = 0.3, MUSIC_DUCK = 0.12; // volume musica, e mentre parla una voce
   const buffers = {};
   const fallback = {};
 
@@ -42,17 +43,13 @@ const Sound = (() => {
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9;
     master.connect(comp); comp.connect(ctx.destination);
     sfxBus = ctx.createGain(); sfxBus.gain.value = 0.55; sfxBus.connect(master);
-    musicBus = ctx.createGain(); musicBus.gain.value = musicOn ? 0.3 : 0; musicBus.connect(master);
+    musicBus = ctx.createGain(); musicBus.gain.value = musicOn ? MUSIC_VOL : 0; musicBus.connect(master);
     voiceBus = ctx.createGain(); voiceBus.gain.value = 1.15; voiceBus.connect(master);
-    // eco "spaghetti western" per musica
-    delay = ctx.createDelay(1); delay.delayTime.value = 0.34;
-    delayFb = ctx.createGain(); delayFb.gain.value = 0.32;
-    const dl = ctx.createGain(); dl.gain.value = 0.45;
-    delay.connect(delayFb); delayFb.connect(delay); delay.connect(dl); dl.connect(musicBus);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     loadVoices();
+    loadMusic();
   }
 
   function loadVoices() {
@@ -87,9 +84,9 @@ const Sound = (() => {
     if (!musicOn) return;
     const t = ctx.currentTime, g = musicBus.gain;
     g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(0.12, t + 0.05);
-    g.setValueAtTime(0.12, t + dur);
-    g.linearRampToValueAtTime(0.3, t + dur + 0.4);
+    g.linearRampToValueAtTime(MUSIC_DUCK, t + 0.05);
+    g.setValueAtTime(MUSIC_DUCK, t + dur);
+    g.linearRampToValueAtTime(MUSIC_VOL, t + dur + 0.4);
   }
 
   // ---------- primitive sintetiche ----------
@@ -162,75 +159,39 @@ const Sound = (() => {
     letter() { tone('triangle', 660, 990, 0.12, 0.2); },
   };
 
-  // ---------- musica procedurale ----------
-  // A minore stile spaghetti-western/surf: Am F G E
-  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
-  const CHORDS = [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 56, 59]];
-  const MELODY = [ // 16 step per accordo, -1 = pausa
-    [69, -1, -1, 72, -1, 76, -1, -1, 74, -1, 72, -1, 69, -1, -1, -1],
-    [72, -1, -1, 69, -1, 65, -1, -1, 69, -1, 72, -1, 77, -1, 76, -1],
-    [74, -1, -1, 71, -1, 67, -1, -1, 71, -1, 74, -1, 79, -1, 77, 76],
-    [76, -1, -1, -1, 75, -1, 76, -1, 80, -1, -1, -1, 83, -1, -1, -1]];
-  let intensity = 0, step = 0, nextTime = 0, timer = null, playing = false;
+  // ---------- musica di sfondo: assets/background.mp3 in loop ----------
+  const MUSIC_URL = 'assets/background.mp3';
+  let musicBuf = null, musicSrc = null, musicEl = null, playing = false;
 
-  function kick(t) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.2);
+  function loadMusic() {
+    fetch(MUSIC_URL).then(r => r.arrayBuffer()).then(ab => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)))
+      .then(buf => { musicBuf = buf; if (playing) playMusic(); })
+      .catch(() => { // file:// → usa <audio>
+        musicEl = new Audio(MUSIC_URL); musicEl.loop = true; musicElVolume();
+        if (playing) musicEl.play().catch(() => {});
+      });
   }
-  function hit(t, dur, vol, ftype, freq) {
-    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
-    const f = ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = freq;
-    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    s.connect(f); f.connect(g); g.connect(musicBus); s.start(t, Math.random() * 0.5); s.stop(t + dur);
-  }
-  function note(t, m, dur, type, vol, toDelay = false, cutoff = 2500) {
-    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-    o.type = type; o.frequency.value = mtof(m);
-    f.type = 'lowpass'; f.frequency.setValueAtTime(cutoff, t); f.frequency.exponentialRampToValueAtTime(cutoff / 4, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f); f.connect(g); g.connect(musicBus); if (toDelay) g.connect(delay);
-    o.start(t); o.stop(t + dur + 0.05);
-  }
-
-  function schedule() {
-    const bpm = intensity >= 2 ? 156 : intensity === 1 ? 132 : 104;
-    const s16 = 60 / bpm / 4;
-    while (nextTime < ctx.currentTime + 0.15) {
-      const t = nextTime, chord = Math.floor(step / 16) % 4, i = step % 16;
-      const root = CHORDS[chord][0] - 12;
-      if (intensity === 0) {
-        if (i % 4 === 0) note(t, root, s16 * 3.5, 'triangle', 0.35);
-        if (i === 0) CHORDS[chord].forEach(m => note(t, m, s16 * 15, 'sine', 0.06, true, 1200));
-        if (i % 2 === 0) note(t, CHORDS[chord][(i / 2) % 3] + 12, s16 * 1.6, 'triangle', 0.05, true, 3000);
-      } else {
-        // basso surf in ottavi
-        if (i % 2 === 0) note(t, root + ((i % 8 === 6) ? 12 : 0), s16 * 1.8, 'sawtooth', 0.22, false, 700);
-        if (i % 8 === 0) kick(t);
-        if (intensity >= 2 && i % 4 === 2) kick(t);
-        if (i % 8 === 4) hit(t, 0.16, 0.45, 'bandpass', 1800);
-        if (i % 2 === 1 || intensity >= 2) hit(t, 0.04, 0.12, 'highpass', 8000);
-        // arpeggio "twang"
-        if (i % 2 === 0) note(t, CHORDS[chord][(i / 2) % 3] + 12, s16 * 1.5, 'square', 0.05, true, 2200);
-        const m = MELODY[chord][i];
-        if (m > 0 && (intensity >= 2 || (Math.floor(step / 64) % 2 === 1)))
-          note(t, m, s16 * 3, 'sawtooth', 0.07, true, 3200);
-      }
-      nextTime += s16; step = (step + 1) % 64;
-    }
+  function musicElVolume() { if (musicEl) musicEl.volume = muted || !musicOn ? 0 : MUSIC_VOL; }
+  function playMusic() {
+    if (musicSrc || !musicBuf) return;
+    musicSrc = ctx.createBufferSource(); musicSrc.buffer = musicBuf; musicSrc.loop = true;
+    musicSrc.connect(musicBus); musicSrc.start();
   }
   function startMusic() {
     if (!ctx || playing) return;
-    playing = true; nextTime = ctx.currentTime + 0.05; step = 0;
-    timer = setInterval(schedule, 25);
+    playing = true;
+    if (musicBuf) playMusic();
+    else if (musicEl) musicEl.play().catch(() => {});
   }
-  function stopMusic() { playing = false; clearInterval(timer); }
-  function setIntensity(n) { intensity = n; }
+  function stopMusic() {
+    playing = false;
+    if (musicSrc) { try { musicSrc.stop(); } catch (e) {} musicSrc = null; }
+    if (musicEl) musicEl.pause();
+  }
+  function setIntensity() {} // la traccia è fissa: l'intensità non cambia la musica
 
-  function setMuted(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.9; }
-  function setMusic(on) { musicOn = on; if (musicBus) { musicBus.gain.cancelScheduledValues(0); musicBus.gain.value = on ? 0.3 : 0; } }
+  function setMuted(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.9; musicElVolume(); }
+  function setMusic(on) { musicOn = on; if (musicBus) { musicBus.gain.cancelScheduledValues(0); musicBus.gain.value = on ? MUSIC_VOL : 0; } musicElVolume(); }
 
   return {
     init, voice, burroni, startMusic, stopMusic, setIntensity, setMuted, setMusic,
