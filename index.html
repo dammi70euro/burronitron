@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<title>Burronitron</title>
+<meta name="description" content="Burronitron: Daredario e l'avventura nei canyon in quattro atti. Un flipper nel browser.">
+<meta property="og:title" content="Burronitron">
+<meta property="og:image" content="assets/img/backglass.jpg">
+<link rel="icon" href="assets/img/atto2.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <h1 class="logo">BURRONITRON</h1>
+    <div id="actCard" class="act-card">
+      <img id="actImg" alt="">
+      <div class="act-info"><div id="actTitle"></div><div id="actName"></div></div>
+    </div>
+    <p id="actDesc"></p>
+    <div class="bar"><div id="actBar"></div></div>
+    <div id="actProg"></div>
+    <div class="stats">
+      <div>PALLA <b id="ball">-</b></div><div>BONUS <b id="mult">1X</b></div><div>LIVELLO <b id="level">1</b></div>
+    </div>
+    <div class="hi">RECORD <b id="hi">0</b></div>
+    <div class="controls">
+      <div><kbd>Z</kbd> <kbd>⇧</kbd> <kbd>←</kbd> flipper sinistro</div>
+      <div><kbd>/</kbd> <kbd>⇧</kbd> <kbd>→</kbd> flipper destro</div>
+      <div><kbd>SPAZIO</kbd> tieni e rilascia per lanciare</div>
+      <div><kbd>X</kbd> <kbd>↑</kbd> scuoti (occhio al TILT)</div>
+      <div><kbd>V</kbd> vista 3D/piatta · <kbd>P</kbd> pausa</div>
+      <div><kbd>M</kbd> audio · <kbd>B</kbd> musica</div>
+    </div>
+  </aside>
+
+  <div id="cabWrap">
+    <div id="cab">
+      <div id="head">
+        <div id="bgArt"></div>
+        <div class="bulbs"></div>
+        <div class="head-logo">BURRONI<br>TRON</div>
+        <div class="dmd">
+          <div id="score">0</div>
+          <div id="dmdLine"></div>
+        </div>
+        <div class="btns">
+          <button id="btnMute" title="Audio (M)">🔊</button>
+          <button id="btnMusic" title="Musica (B)">♫</button>
+          <button id="btnView" title="Vista (V)">3D</button>
+          <button id="btnPause" title="Pausa (P)">❚❚</button>
+        </div>
+      </div>
+      <div id="neck"></div>
+      <div id="tableWrap"><canvas id="table"></canvas></div>
+      <div id="front">
+        <button class="fbtn red" id="bL" aria-label="flipper sinistro"></button>
+        <button class="fbtn start" id="bStart" aria-label="start / lancio"><span>START</span></button>
+        <button class="fbtn red" id="bR" aria-label="flipper destro"></button>
+      </div>
+      <div id="body"><div class="coin"><span></span><span></span></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="title" class="overlay">
+  <div class="title-bg"></div>
+  <div class="title-box">
+    <h1 class="logo big">BURRONITRON</h1>
+    <p class="tag">Daredario e l'avventura nei canyon in quattro atti</p>
+    <p class="press">PREMI SPAZIO o TOCCA per giocare</p>
+    <p class="hint">Desktop: Z e / per i flipper, SPAZIO per lanciare.<br>Telefono: tocca a sinistra/destra; tieni premuto a destra per caricare il lancio.</p>
+  </div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="title-box">
+    <h2 class="go">GAME OVER</h2>
+    <div id="overScore" class="go-score">0</div>
+    <div id="overRec" class="go-rec"></div>
+    <p class="press">PREMI SPAZIO o TOCCA per rigiocare</p>
+  </div>
+</div>
+
+<div id="cine" class="cine">
+  <div id="cineImg" class="cine-img"></div>
+  <div class="cine-text">
+    <div id="cineTitle" class="cine-title"></div>
+    <div id="cineName" class="cine-name"></div>
+    <div id="cineDesc" class="cine-desc"></div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden"><div class="title-box"><h2 class="go">PAUSA</h2><p class="press">P o tocca per continuare</p></div></div>
+
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+</body>
+</html>
