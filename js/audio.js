@@ -6,13 +6,19 @@ const Sound = (() => {
   const buffers = {};
   const fallback = {};
 
-  // Voce → file. Cambia qui le associazioni se vuoi.
-  const VOICES = {
-    vai: 'vai', li: 'li', boplibop: 'boplibop', letto: 'letto', letto2: 'letto2',
-    eeh: 'eeh', eeeeh: 'eeeeh', scoo: 'scoo', frra: 'frra', ahte: 'ahte',
-    noate: 'noate', risate: 'risate',
-    burroni1: 'burroni1', burroni2: 'burroni2', burroni3: 'burroni3'
-  };
+  // vocali da vocals/ (convertiti in assets/voci/vocalsN.mp3): ogni voce ne pesca uno a caso.
+  // Se aggiungi vocali, alza VOCALS_COUNT.
+  const VOCALS_COUNT = 16;
+  const VOCALS = Array.from({ length: VOCALS_COUNT }, (_, i) => `vocals${i + 1}`);
+  const VOICES = { burroni1: 'burroni1', burroni2: 'burroni2', burroni3: 'burroni3' };
+  for (const v of VOCALS) VOICES[v] = v;
+  let lastVocal = -1;
+  function pickVocal() {
+    let i;
+    do { i = Math.floor(Math.random() * VOCALS.length); } while (VOCALS.length > 1 && i === lastVocal);
+    lastVocal = i;
+    return VOCALS[i];
+  }
   // vocali di Burroni: partono a caso dal sensore BURRONI
   const BURRONI = ['burroni1', 'burroni2', 'burroni3'];
   // in generale, su 5 voci 4 vengono da vocals/ e 1 da burroni/
@@ -65,7 +71,7 @@ const Sound = (() => {
     const now = ctx.currentTime;
     if (now < voiceUntil && pri <= voicePri) return;
     if (voiceSrc) { try { voiceSrc.stop(); } catch (e) {} voiceSrc = null; }
-    if (!BURRONI.includes(key) && Math.random() < BURRONI_RATIO) key = pickBurroni();
+    if (!BURRONI.includes(key)) key = Math.random() < BURRONI_RATIO ? pickBurroni() : pickVocal();
     if (buffers[key]) {
       const s = ctx.createBufferSource(); s.buffer = buffers[key];
       s.connect(voiceBus); s.start();

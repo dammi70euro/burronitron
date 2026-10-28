@@ -49,4 +49,4 @@ e poi apri http://localhost:8000.
 - `js/render.js`: disegno e interfaccia
 - `js/audio.js`: effetti sintetizzati, musica procedurale e voci (associazioni in `VOICES`)
 - `assets/img`: grafiche ottimizzate (il piano `canyon.jpg` è ricavato dall'immagine originale)
-- `assets/voci`: le voci convertite in mp3 (gli originali sono in `vocals/`)
+- `assets/voci`: le voci convertite in mp3 (gli originali sono in `vocals/`); `vocalsN.mp3` vengono pescati a caso, il numero è in `VOCALS_COUNT` in `js/audio.js`
